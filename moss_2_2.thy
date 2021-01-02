@@ -128,6 +128,164 @@ proof (auto simp add: preorder_on_def)
     by (metis (mono_tags, lifting) CollectD CollectI case_prodD case_prodI derives.A_barbara less_equal_atomic_def transI)
 qed
 
+definition "canonical_model G u \<equiv> {v. v\<lesssim>G u}"
+
+lemma lemma_2_4_2: 
+  fixes G
+  assumes "M = canonical_model G"
+  shows "M \<Turnstile>M G"
+proof (auto simp add: M_satisfies_G_def)
+  fix f assume "f \<in> G"
+  show "M \<Turnstile> f"
+    by (metis A_assumption \<open>f \<in> G\<close> assms canonical_model_def derives.A_barbara less_equal_atomic_def mem_Collect_eq satisfies.elims(3) subsetI)
+qed
+
+
+lemma lemma_2_4_2_b: 
+  fixes G
+  assumes "M = canonical_model G"
+  shows "M \<Turnstile>M G"
+proof (auto simp add: M_satisfies_G_def)
+  fix g assume "g \<in> G"
+  then obtain p q where "(All p are q) = g"
+    by (metis wff.exhaust)
+  then have "p \<lesssim> G q" using A_assumption
+    by (simp add: \<open>g \<in> G\<close> less_equal_atomic_def)
+  then have "M p \<subseteq> M q" using A_barbara
+    using assms canonical_model_def less_equal_atomic_def by blast
+  thus "M \<Turnstile> g"
+    using \<open>(All p are q) = g\<close> by auto
+qed
+
+lemma completeness:
+  assumes "entails G (All p are q) (TYPE(atomic))"
+  shows "G \<turnstile> (All p are q)"
+proof -
+  define M where "M \<equiv> canonical_model G"
+  have "M \<Turnstile> All p are q" using lemma_2_4_2
+    using M_def assms entails_def by blast
+  then have "M p \<subseteq> M q"
+    by simp
+  have "p \<lesssim> G p"
+    by (simp add: derives.A_axiom less_equal_atomic_def)
+  then have "p \<in> M p"
+    by (simp add: M_def canonical_model_def)
+  have "p \<in> M q"
+    using \<open>M p \<subseteq> M q\<close> \<open>p \<in> M p\<close> by blast
+  then have "p \<lesssim> G q"
+    using M_def canonical_model_def by blast
+  thus ?thesis
+    using less_equal_atomic_def by blast
+qed
+
+lemma example_2_1_aa:
+  assumes "(UNIV :: atomic set) = {n}"
+  shows "card (UNIV :: atomic set) = 1"
+proof - 
+  obtain A where "A \<equiv> (UNIV :: wff set)"
+    by simp
+  then have "A = {All n are n}"
+    by (metis UNIV_I UNIV_eq_I assms insertI1 singletonD wff.exhaust)
+  then have "card (A) = 1"
+    by (simp add: \<open>A = {All n are n}\<close>)
+  thus ?thesis
+    by (simp add: assms)
+qed
+
+lemma example_2_1_ab_1:
+  assumes "(UNIV::atomic set) = {n, p, q}"
+  assumes "X = {All n are n, All p are p, All q are q, All n are p, All n are q, All p are n, All p are q, All q are n, All q are p}"
+  assumes "not_equal n p"
+  assumes "not_equal n q"
+  assumes "not_equal q p"
+  shows "X = (UNIV::wff set)"
+proof - 
+  obtain A where "A \<equiv> (UNIV :: wff set)"
+    by simp
+  have "\<forall> x. x \<in> A \<longrightarrow> (\<exists> c . \<exists>b . x = (All c are b) \<and> (c \<in> (UNIV:: atomic set))\<and> (b \<in> (UNIV:: atomic set)))"
+    by (meson UNIV_I wff.exhaust) 
+  then have "\<forall> x. x \<in> A \<longrightarrow> x \<in> X"
+    by (smt assms(1) assms(2) insertE insert_subset singletonD subset_insertI)
+  then have "A \<subseteq> X"
+    by blast
+  have "X \<subseteq> A"
+    by (simp add: \<open>A \<equiv> UNIV\<close>)
+  then have "X = A"
+    using \<open>A \<subseteq> X\<close> by blast
+  thus ?thesis
+    by (simp add: \<open>A \<equiv> UNIV\<close>)
+qed
+
+lemma example_2_1_ab_2:
+  assumes "(UNIV::atomic set) = {n, p, q}"
+  assumes "not_equal n p"
+  assumes "not_equal n q"
+  assumes "not_equal q p"
+  shows "card(UNIV::wff set) = 9"
+proof - 
+  define X where "X = {All n are n, All p are p, All q are q, All n are p, All n are q, All p are n, All p are q, All q are n, All q are p}"
+  obtain A where "A \<equiv> (UNIV :: wff set)"
+    by simp
+  have "card(X) = 9" using X_def and assms by fastforce
+  have "A = X" using example_2_1_ab_1
+    using X_def \<open>A \<equiv> UNIV\<close> assms(1) assms(2) assms(3) assms(4) by presburger
+  thus ?thesis
+    using \<open>A \<equiv> UNIV\<close> \<open>card X = 9\<close> by blast
+qed
+
+lemma example_2_2:
+  shows "entails {(All p are q), (All n are p)} (All n are q) TYPE(atomic)"
+  unfolding entails_def
+proof rule+
+  have "\<forall> M. M_satisfies_G M {(All p are q), (All n are p)} \<longrightarrow>  M_satisfies_G M {(All n are q)}"
+    by (metis M_satisfies_G_def insertI1 insert_commute order.trans satisfies.simps singletonD)
+  have "\<forall> M. (M_satisfies_G M {All n are q}) \<longrightarrow> (M \<Turnstile> (All n are q))"
+    by (simp add: M_satisfies_G_def)
+  then have "\<forall> M. M_satisfies_G M {All p are q, All n are p} \<longrightarrow> (M \<Turnstile> (All n are q))"
+    using \<open>\<forall>M. M_satisfies_G M {All p are q, All n are p} \<longrightarrow> (M \<Turnstile>M {All n are q})\<close> by blast
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+
+   
+  
+
+  
+
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
