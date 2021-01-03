@@ -233,16 +233,59 @@ proof -
     using \<open>A \<equiv> UNIV\<close> \<open>card X = 9\<close> by blast
 qed
 
+
 lemma example_2_2:
   shows "entails {(All p are q), (All n are p)} (All n are q) TYPE(atomic)"
-  unfolding entails_def
-proof rule+
-  have "\<forall> M. M_satisfies_G M {(All p are q), (All n are p)} \<longrightarrow>  M_satisfies_G M {(All n are q)}"
+proof -
+  have "\<forall> M. (M \<Turnstile>M {All p are q, All n are p}) \<longrightarrow> (M \<Turnstile>M {All n are q})"
     by (metis M_satisfies_G_def insertI1 insert_commute order.trans satisfies.simps singletonD)
-  have "\<forall> M. (M_satisfies_G M {All n are q}) \<longrightarrow> (M \<Turnstile> (All n are q))"
+  have "\<forall> M. (M \<Turnstile>M {All n are q}) \<longrightarrow> (M \<Turnstile> All n are q)"
     by (simp add: M_satisfies_G_def)
-  then have "\<forall> M. M_satisfies_G M {All p are q, All n are p} \<longrightarrow> (M \<Turnstile> (All n are q))"
-    using \<open>\<forall>M. M_satisfies_G M {All p are q, All n are p} \<longrightarrow> (M \<Turnstile>M {All n are q})\<close> by blast
+  then have "\<forall> M. (M \<Turnstile>M {All p are q, All n are p}) \<longrightarrow> (M \<Turnstile> All n are q)"
+    using \<open>\<forall>M. (M \<Turnstile>M {All p are q, All n are p}) \<longrightarrow> (M \<Turnstile>M {All n are q})\<close> by blast
+  thus ?thesis
+    using entails_def by blast
+qed
+
+lemma example_2_2_b:
+  shows "entails {(All p are q), (All n are p)} (All n are q) TYPE(atomic)"
+  unfolding entails_def
+proof (rule+)
+  fix M assume "M \<Turnstile>M {All p are q, All n are p}"
+  then have "M \<Turnstile>M {All n are q}"
+    by (metis M_satisfies_G_def insertI1 insert_commute order.trans satisfies.simps singletonD)
+  thus "M \<Turnstile> All n are q"
+    using M_satisfies_G_def by blast
+qed
+
+lemma example_2_4_1:
+  fixes G
+  assumes "M = canonical_model G"
+  assumes "entails G g (TYPE(atomic))"
+  shows "G \<turnstile> g"
+  by (metis assms(2) completeness entails_def lemma_2_4_2 satisfies.elims(2))
+
+
+lemma example_2_4_2:
+  fixes G g M
+  assumes "M = canonical_model G"
+  assumes "M \<Turnstile> g"
+  shows "G \<turnstile> g"
+proof -
+  have "entails G g (TYPE(atomic))"
+    by (metis assms(1) assms(2) canonical_model_def derives.A_axiom insert_subset less_equal_atomic_def mem_Collect_eq satisfies.simps soundness subsetI subset_trans wff.exhaust)
+  thus ?thesis
+    using example_2_4_1 by blast
+qed
+
+
+
+
+
+
+
+
+
 
 
 
